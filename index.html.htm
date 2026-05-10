@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PS Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#08090c;--bg1:#0e1117;--bg2:#141a22;--bg3:#1b2230;--bg4:#222b3a;
+  --border:#263040;--border2:#334258;
+  --orange:#ff9900;--orange-dim:rgba(255,153,0,0.13);--orange-glow:rgba(255,153,0,0.22);
+  --text0:#edf2f7;--text1:#9ab0c8;--text2:#506070;--text3:#2a3a4a;
+  --green:#22c55e;--green-dim:rgba(34,197,94,0.13);
+  --red:#ef4444;--red-dim:rgba(239,68,68,0.13);
+  --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.13);
+  --yellow:#eab308;--yellow-dim:rgba(234,179,8,0.13);
+  --purple:#a855f7;--purple-dim:rgba(168,85,247,0.13);
+  --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'SF Mono','Fira Code','Cascadia Code',monospace;
+}
+html,body{height:100%;background:var(--bg0);color:var(--text0);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+input,select,textarea{font-family:var(--sans);font-size:14px;color:var(--text0);background:var(--bg3);border:1px solid var(--border);border-radius:7px;outline:none;transition:border .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-dim)}
+button{font-family:var(--sans);cursor:pointer;border:none;outline:none;transition:all .15s;font-size:13px;font-weight:600}
+button:active{transform:scale(0.97)}
+
+/* ── LAYOUT ── */
+#app{display:flex;flex-direction:column;min-height:100vh}
+
+/* ── HEADER ── */
+#header{
+  background:var(--bg1);border-bottom:1px solid var(--border);
+  padding:10px 18px;display:flex;align-items:center;flex-wrap:wrap;gap:10px;
+  position:sticky;top:0;z-index:200;
+}
+.logo{display:flex;align-items:center;gap:10px;margin-right:6px}
+.logo-badge{
+  background:var(--orange);color:#000;font-weight:800;font-size:15px;
+  width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  letter-spacing:-1px;flex-shrink:0;
+}
+.logo-text{line-height:1.2}
+.logo-title{font-size:13px;font-weight:700;color:var(--orange);letter-spacing:.5px}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:.3px}
+.header-date{font-size:12px;color:var(--text2);font-family:var(--mono);white-space:nowrap}
+#header select,#header input[type=text]{padding:6px 10px;height:32px;font-size:13px;border-radius:6px}
+#header select{min-width:90px}
+#header input[type=text]{width:130px}
+.header-spacer{flex:1}
+.total-badge{
+  background:var(--orange-dim);border:1px solid var(--orange);border-radius:99px;
+  padding:4px 14px;font-size:12px;font-family:var(--mono);font-weight:700;color:var(--orange);white-space:nowrap;
+}
+.btn-send{
+  background:var(--orange);color:#000;padding:7px 16px;border-radius:7px;font-weight:700;font-size:13px;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.btn-send:hover{background:#ffb020}
+.btn-send:disabled{background:var(--bg3);color:var(--text2);cursor:not-allowed;transform:none}
+.btn-csv{
+  background:var(--bg3);color:var(--text1);border:1px solid var(--border2);
+  padding:7px 12px;border-radius:7px;font-weight:500;font-size:13px;white-space:nowrap;
+}
+.btn-csv:hover{background:var(--bg4)}
+.btn-shortcut{font-size:10px;opacity:.6;font-weight:400}
+
+/* ── NAV ── */
+#nav{
+  background:var(--bg1);border-bottom:1px solid var(--border);
+  padding:0 18px;display:flex;gap:2px;overflow-x:auto;
+}
+.nav-btn{
+  background:transparent;color:var(--text2);padding:10px 16px;border-radius:0;
+  font-size:13px;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap;
+}
+.nav-btn:hover{color:var(--text0);background:var(--bg2)}
+.nav-btn.active{color:var(--orange);border-bottom-color:var(--orange);background:transparent}
+.nav-btn:active{transform:none}
+
+/* ── PAGES ── */
+.page{display:none;flex:1}
+.page.active{display:block}
+
+/* ── DASHBOARD PAGE ── */
+#page-dashboard{padding:18px}
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+@media(max-width:700px){.summary-grid{grid-template-columns:repeat(2,1fr)}}
+.sum-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;cursor:pointer;transition:all .15s;
+}
+.sum-card:hover,.sum-card.focused{border-color:var(--card-color,var(--orange))}
+.sum-card.focused{background:color-mix(in srgb,var(--card-color) 10%,var(--bg2))}
+.sum-icon{font-size:18px;margin-bottom:4px}
+.sum-label{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--card-color,var(--text2));margin-bottom:6px;text-transform:uppercase}
+.sum-count{font-size:30px;font-family:var(--mono);font-weight:700;color:var(--card-color,var(--text0));line-height:1}
+.sum-sub{font-size:10px;color:var(--text2);margin-top:3px}
+
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:750px){.cat-grid{grid-template-columns:1fr}}
+
+/* ── CATEGORY CARD ── */
+.cat-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;display:flex;flex-direction:column;transition:border .2s,box-shadow .2s;
+}
+.cat-card.focused{box-shadow:0 0 0 1px var(--card-color),0 6px 24px rgba(0,0,0,.5)}
+.cat-card.focused{border-color:var(--card-color)}
+.cat-head{
+  padding:12px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:color-mix(in srgb,var(--card-color) 8%,var(--bg2));
+}
+.cat-head-left{display:flex;align-items:center;gap:10px}
+.cat-icon{font-size:20px}
+.cat-name{font-size:14px;font-weight:700;color:var(--card-color);letter-spacing:.3px}
+.cat-desc{font-size:10px;color:var(--text2);margin-top:1px}
+.cat-count{
+  background:var(--card-color);color:#000;width:34px;height:34px;border-radius:99px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;font-size:14px;flex-shrink:0;
+}
+.cat-input-row{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:8px}
+.cat-input-row input{flex:1;padding:8px 11px;font-family:var(--mono);font-size:13px;letter-spacing:.3px}
+.btn-add{
+  background:var(--card-color);color:#000;padding:8px 14px;
+  border-radius:7px;font-weight:700;font-size:13px;flex-shrink:0;
+}
+.btn-add:hover{opacity:.85}
+.cat-list{overflow-y:auto;max-height:260px;flex:1}
+.cat-empty{text-align:center;color:var(--text3);font-size:13px;padding:24px 0}
+.entry-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 12px;border-bottom:1px solid var(--border);transition:background .1s;
+}
+.entry-row:last-child{border-bottom:none}
+.entry-row:hover{background:var(--bg3)}
+.entry-left{display:flex;align-items:center;gap:8px}
+.entry-num{color:var(--text3);font-size:11px;font-family:var(--mono);width:18px;text-align:right;flex-shrink:0}
+.entry-id{font-family:var(--mono);font-size:13px;letter-spacing:.3px}
+.entry-id.dup{color:var(--yellow)}
+.dup-badge{font-size:9px;background:var(--yellow-dim);color:var(--yellow);border:1px solid var(--yellow);border-radius:4px;padding:1px 4px;margin-left:5px;font-weight:700}
+.entry-right{display:flex;align-items:center;gap:8px}
+.entry-time{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.btn-del{
+  background:var(--red-dim);color:var(--red);width:22px;height:22px;
+  border-radius:5px;font-size:15px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-weight:400;
+}
+.btn-del:hover{background:var(--red);color:#fff}
+.btn-del:active{transform:scale(.92)}
+
+/* ── ANALYTICS PAGE ── */
+#page-analytics{padding:18px}
+.analytics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+@media(max-width:700px){.analytics-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;font-weight:600}
+.stat-val{font-size:26px;font-family:var(--mono);font-weight:700}
+.history-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.history-head{padding:12px 16px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase}
+.history-table{width:100%;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:8px 12px;color:var(--text2);font-weight:600;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:7px 12px;border-bottom:1px solid var(--border);font-family:var(--mono)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+.td-total{font-weight:700;color:var(--orange)}
+
+/* ── SETTINGS PAGE ── */
+#page-settings{padding:18px;max-width:600px}
+.settings-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.settings-head{background:var(--bg3);padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px}
+.settings-body{padding:16px;display:flex;flex-direction:column;gap:14px}
+.field-label{font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.field-hint{font-size:11px;color:var(--text3);margin-top:4px}
+.settings-body input{width:100%;padding:9px 12px;font-family:var(--mono);font-size:12px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn-ghost{background:var(--bg3);color:var(--text1);border:1px solid var(--border2);padding:8px 16px;border-radius:7px;font-weight:600}
+.btn-ghost:hover{background:var(--bg4)}
+.btn-primary{background:var(--orange);color:#000;padding:8px 20px;border-radius:7px;font-weight:700}
+.btn-primary:hover{background:#ffb020}
+.guide-step{display:flex;gap:12px;margin-bottom:12px;font-size:13px;align-items:flex-start}
+.guide-num{background:var(--orange);color:#000;border-radius:99px;width:22px;height:22px;min-width:22px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;margin-top:1px}
+.guide-text{color:var(--text1);line-height:1.5}
+.guide-text a{color:var(--orange);text-decoration:none}
+.guide-text a:hover{text-decoration:underline}
+.info-box{background:var(--blue-dim);border:1px solid var(--blue);border-radius:8px;padding:11px 14px;font-size:12px;color:var(--text1);line-height:1.6}
+.info-box strong{color:var(--blue)}
+.success-box{background:var(--green-dim);border:1px solid var(--green);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green);display:none}
+
+/* ── TOASTS ── */
+#toast-container{position:fixed;bottom:44px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{
+  padding:10px 16px;border-radius:9px;font-size:13px;font-weight:600;
+  min-width:200px;max-width:320px;pointer-events:all;
+  animation:toastin .2s ease;
+}
+.toast.success{background:var(--green-dim);border:1px solid var(--green);color:var(--green)}
+.toast.error{background:var(--red-dim);border:1px solid var(--red);color:var(--red)}
+.toast.warn{background:var(--yellow-dim);border:1px solid var(--yellow);color:var(--yellow)}
+@keyframes toastin{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── SHORTCUT BAR ── */
+#shortcut-bar{
+  background:var(--bg1);border-top:1px solid var(--border);
+  padding:5px 18px;display:flex;gap:18px;font-size:11px;color:var(--text3);
+  position:sticky;bottom:0;z-index:100;flex-wrap:wrap;
+}
+kbd{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:4px;
+  padding:1px 5px;font-size:10px;font-family:var(--mono);color:var(--text1);
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="logo">
+      <div class="logo-badge">PS</div>
+      <div class="logo-text">
+        <div class="logo-title">PROBLEM SOLVE</div>
+        <div class="logo-sub">FC DASHBOARD</div>
+      </div>
+    </div>
+
+    <div class="header-date" id="header-date">Sun, 10 May 2026</div>
+
+    <select id="sel-shift">
+      <option selected="selected">Day</option>
+      <option>Night</option>
+      <option>Twilight</option>
+    </select>
+
+    <input type="text" id="inp-name" placeholder="Your name…" maxlength="30">
+
+    <select id="sel-station">
+      <option selected="selected">PROBLEM SOLVE</option>
+      <option>SORT-A</option>
+      <option>SORT-B</option>
+      <option>INDUCT-1</option>
+      <option>INDUCT-2</option>
+      <option>SLAM</option>
+      <option>PACK</option>
+      <option>REBIN</option>
+      <option>STOW</option>
+      <option>RECEIVE</option>
+    </select>
+
+    <div class="header-spacer"></div>
+
+    <div class="total-badge" id="total-badge">0 PKG TODAY</div>
+
+    <button class="btn-send" id="btn-send" onclick="sendToSlack()">
+      📨 Send Report <span class="btn-shortcut">Ctrl+↵</span>
+    </button>
+
+    <button class="btn-csv" onclick="exportCSV()">⬇ CSV</button>
+  </header>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <button class="nav-btn active" onclick="showPage('dashboard',this)">📊 Dashboard</button>
+    <button class="nav-btn" onclick="showPage('analytics',this)">📈 Analytics</button>
+    <button class="nav-btn" onclick="showPage('settings',this)">⚙️ Settings</button>
+  </nav>
+
+  <!-- ══ DASHBOARD PAGE ══ -->
+  <div id="page-dashboard" class="page active">
+
+    <!-- Summary cards -->
+    <div class="summary-grid" style="padding:18px 18px 0">
+      <div class="sum-card focused" id="sum-FDD" style="--card-color:#ff9900" onclick="focusCat('FDD')">
+        <div class="sum-icon">📦</div>
+        <div class="sum-label">FDD</div>
+        <div class="sum-count" id="cnt-FDD">0</div>
+        <div class="sum-sub">entries</div>
+      </div>
+      <div class="sum-card" id="sum-DOUBLE" style="--card-color:#3b82f6" onclick="focusCat('DOUBLE')">
+        <div class="sum-icon">🔁</div>
+        <div class="sum-label">DOUBLE</div>
+        <div class="sum-count" id="cnt-DOUBLE">0</div>
+        <div class="sum-sub">entries</div>
+      </div>
+      <div class="sum-card" id="sum-DAMAGE" style="--card-color:#ef4444" onclick="focusCat('DAMAGE')">
+        <div class="sum-icon">⚠️</div>
+        <div class="sum-label">DAMAGE</div>
+        <div class="sum-count" id="cnt-DAMAGE">0</div>
+        <div class="sum-sub">entries</div>
+      </div>
+      <div class="sum-card" id="sum-DS" style="--card-color:#a855f7" onclick="focusCat('DS STOW FAILURES')">
+        <div class="sum-icon">🗄️</div>
+        <div class="sum-label">DS STOW</div>
+        <div class="sum-count" id="cnt-DS">0</div>
+        <div class="sum-sub">entries</div>
+      </div>
+    </div>
+
+    <!-- Category cards -->
+    <div class="cat-grid" style="padding:14px 18px 60px">
+
+      <!-- FDD -->
+      <div class="cat-card focused" id="card-FDD" style="--card-color:#ff9900">
+        <div class="cat-head">
+          <div class="cat-head-left">
+            <span class="cat-icon">📦</span>
+            <div>
+              <div class="cat-name">FDD</div>
+              <div class="cat-desc">Failed Delivery / Defect</div>
+            </div>
+          </div>
+          <div class="cat-count" id="badge-FDD">0</div>
+        </div>
+        <div class="cat-input-row">
+          <input type="text" id="in-FDD" placeholder="Scan or type tracking ID…" onkeydown="handleKey(event,'FDD')">
+          <button class="btn-add" onclick="addEntry('FDD')">+ Add</button>
+        </div>
+        <div class="cat-list" id="list-FDD"><div class="cat-empty">No entries yet — scan or type a tracking ID above</div></div>
+      </div>
+
+      <!-- DOUBLE -->
+      <div class="cat-card" id="card-DOUBLE" style="--card-color:#3b82f6">
+        <div class="cat-head">
+          <div class="cat-head-left">
+            <span class="cat-icon">🔁</span>
+            <div>
+              <div class="cat-name">DOUBLE</div>
+              <div class="cat-desc">Double scanned packages</div>
+            </div>
+          </div>
+          <div class="cat-count" id="badge-DOUBLE">0</div>
+        </div>
+        <div class="cat-input-row">
+          <input type="text" id="in-DOUBLE" placeholder="Scan or type tracking ID…" onkeydown="handleKey(event,'DOUBLE')">
+          <button class="btn-add" onclick="addEntry('DOUBLE')">+ Add</button>
+        </div>
+        <div class="cat-list" id="list-DOUBLE"><div class="cat-empty">No entries yet — scan or type a tracking ID above</div></div>
+      </div>
+
+      <!-- DAMAGE -->
+      <div class="cat-card" id="card-DAMAGE" style="--card-color:#ef4444">
+        <div class="cat-head">
+          <div class="cat-head-left">
+            <span class="cat-icon">⚠️</span>
+            <div>
+              <div class="cat-name">DAMAGE</div>
+              <div class="cat-desc">Damaged packages</div>
+            </div>
+          </div>
+          <div class="cat-count" id="badge-DAMAGE">0</div>
+        </div>
+        <div class="cat-input-row">
+          <input type="text" id="in-DAMAGE" placeholder="Scan or type tracking ID…" onkeydown="handleKey(event,'DAMAGE')">
+          <button class="btn-add" onclick="addEntry('DAMAGE')">+ Add</button>
+        </div>
+        <div class="cat-list" id="list-DAMAGE"><div class="cat-empty">No entries yet — scan or type a tracking ID above</div></div>
+      </div>
+
+      <!-- DS STOW FAILURES -->
+      <div class="cat-card" id="card-DS" style="--card-color:#a855f7">
+        <div class="cat-head">
+          <div class="cat-head-left">
+            <span class="cat-icon">🗄️</span>
+            <div>
+              <div class="cat-name">DS STOW FAILURES</div>
+              <div class="cat-desc">Downstream stow failures</div>
+            </div>
+          </div>
+          <div class="cat-count" id="badge-DS">0</div>
+        </div>
+        <div class="cat-input-row">
+          <input type="text" id="in-DS" placeholder="Scan or type tracking ID…" onkeydown="handleKey(event,'DS STOW FAILURES')">
+          <button class="btn-add" onclick="addEntry('DS STOW FAILURES')">+ Add</button>
+        </div>
+        <div class="cat-list" id="list-DS"><div class="cat-empty">No entries yet — scan or type a tracking ID above</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ ANALYTICS PAGE ══ -->
+  <div id="page-analytics" class="page">
+    <div style="padding:18px 18px 60px">
+      <div class="analytics-grid" id="analytics-stats"></div>
+      <div class="history-card">
+        <div class="history-head">📅 DAILY VOLUME — LAST 14 DAYS</div>
+        <div class="history-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th style="color:#ff9900">FDD</th>
+                <th style="color:#3b82f6">DOUBLE</th>
+                <th style="color:#ef4444">DAMAGE</th>
+                <th style="color:#a855f7">DS STOW</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS PAGE ══ -->
+  <div id="page-settings" class="page">
+    <div style="padding:18px 18px 60px">
+
+      <div class="settings-card">
+        <div class="settings-head">🔔 Slack Integration</div>
+        <div class="settings-body">
+          <div>
+            <div class="field-label">Incoming Webhook URL</div>
+            <input type="text" id="inp-webhook" placeholder="https://hooks.slack.com/services/T.../B.../XXX">
+            <div class="field-hint">Get this from Slack → Your App → Incoming Webhooks → Add New Webhook</div>
+          </div>
+          <div>
+            <div class="field-label">Slack Channel (optional)</div>
+            <input type="text" id="inp-channel" placeholder="#problem-solve-reports">
+            <div class="field-hint">Leave blank to use the channel set in your Slack webhook</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn-ghost" onclick="testWebhook()">🔗 Test Connection</button>
+            <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+          </div>
+          <div class="success-box" id="settings-ok">✓ Settings saved successfully!</div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-head">📋 Slack Setup Guide</div>
+        <div class="settings-body">
+          <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Go to <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a> and sign in</div></div>
+          <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Click <strong>"Create New App"</strong> → <strong>"From scratch"</strong></div></div>
+          <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">Name your app <strong>"PS Dashboard"</strong> and select your workspace</div></div>
+          <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">In the left sidebar click <strong>"Incoming Webhooks"</strong> and toggle it <strong>ON</strong></div></div>
+          <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Scroll down, click <strong>"Add New Webhook to Workspace"</strong></div></div>
+          <div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Choose the channel you want reports posted to (e.g. <code>#problem-solve</code>) → click <strong>Allow</strong></div></div>
+          <div class="guide-step"><div class="guide-num">7</div><div class="guide-text">Copy the webhook URL and paste it in the field above → Save Settings</div></div>
+          <div class="guide-step"><div class="guide-num">8</div><div class="guide-text">Click <strong>"Test Connection"</strong> to verify, then use <strong>"Send Report"</strong> on the dashboard!</div></div>
+          <div class="info-box">
+            <strong>Note:</strong> When sending directly from a browser, Slack blocks the response due to CORS — but the message <em>is delivered</em>. You'll still get a confirmation. For a full backend proxy, see the README.
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-head">⚠️ Data Management</div>
+        <div class="settings-body">
+          <div style="font-size:13px;color:var(--text1)">All data is saved automatically in your browser's local storage. It persists across sessions and browser restarts.</div>
+          <div class="btn-row">
+            <button class="btn-ghost" onclick="clearToday()">🗑 Clear Today's Entries</button>
+            <button class="btn-ghost" onclick="clearAll()" style="color:var(--red);border-color:var(--red)">⚡ Clear All Data</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- TOASTS -->
+<div id="toast-container"></div>
+
+<!-- SHORTCUT BAR -->
+<div id="shortcut-bar">
+  <span><kbd>Enter</kbd> Add entry</span>
+  <span><kbd>Ctrl+Enter</kbd> Send to Slack</span>
+  <span><kbd>Tab</kbd> Next field</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  PS DASHBOARD — Pure JavaScript
+//  All data lives in localStorage. Works offline. No dependencies.
+// ═══════════════════════════════════════════════════════════════
+
+const CATS = ['FDD','DOUBLE','DAMAGE','DS STOW FAILURES'];
+const CAT_ID = { 'FDD':'FDD','DOUBLE':'DOUBLE','DAMAGE':'DAMAGE','DS STOW FAILURES':'DS' };
+const CAT_COLOR = { 'FDD':'#ff9900','DOUBLE':'#3b82f6','DAMAGE':'#ef4444','DS STOW FAILURES':'#a855f7' };
+const CAT_ICON  = { 'FDD':'📦','DOUBLE':'🔁','DAMAGE':'⚠️','DS STOW FAILURES':'🗄️' };
+
+// ── Storage helpers ──────────────────────────────────────────────
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d}catch{return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+
+function today(){ return new Date().toISOString().slice(0,10) }
+
+// ── State ────────────────────────────────────────────────────────
+let history  = lsGet('ps_history', {});
+let settings = lsGet('ps_settings', {webhookUrl:'', channel:''});
+let user     = lsGet('ps_user', '');
+let shift    = lsGet('ps_shift', 'Day');
+let station  = lsGet('ps_station', 'PROBLEM SOLVE');
+
+// Restore header inputs
+document.getElementById('inp-name').value   = user;
+document.getElementById('sel-shift').value  = shift;
+document.getElementById('sel-station').value = station;
+document.getElementById('inp-webhook').value = settings.webhookUrl || '';
+document.getElementById('inp-channel').value = settings.channel    || '';
+
+// Header date
+document.getElementById('header-date').textContent =
+  new Date().toLocaleDateString([],{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+
+// Save header changes
+document.getElementById('inp-name').addEventListener('input', e => { user = e.target.value; lsSet('ps_user', user); });
+document.getElementById('sel-shift').addEventListener('change', e => { shift = e.target.value; lsSet('ps_shift', shift); });
+document.getElementById('sel-station').addEventListener('change', e => { station = e.target.value; lsSet('ps_station', station); });
+
+// ── Get today's data ─────────────────────────────────────────────
+function getTodayData(){
+  if(!history[today()]) history[today()] = {};
+  CATS.forEach(c=>{ if(!history[today()][c]) history[today()][c]=[]; });
+  return history[today()];
+}
+function getCat(cat){ return getTodayData()[cat]||[]; }
+
+// ── Save ─────────────────────────────────────────────────────────
+function save(){ lsSet('ps_history', history); }
+
+// ── Format time ──────────────────────────────────────────────────
+function fmtTime(iso){
+  return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function fmtDate(iso){
+  return new Date(iso+'T00:00:00').toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+}
+
+// ── Add entry ────────────────────────────────────────────────────
+function addEntry(cat){
+  const id = CAT_ID[cat];
+  const inp = document.getElementById('in-'+id);
+  const val = (inp.value||'').trim().toUpperCase();
+  if(!val){ toast('Enter a tracking ID first','warn'); inp.focus(); return; }
+
+  // Duplicate check
+  if(getCat(cat).some(e=>e.id===val)){
+    toast('⚠ Duplicate: '+val+' already in '+cat,'warn');
+    inp.select();
+    return;
+  }
+
+  const entry = { uid: Date.now()+'_'+Math.random().toString(36).slice(2), id:val, ts:new Date().toISOString() };
+  getTodayData()[cat].push(entry);
+  save();
+  inp.value='';
+  inp.focus();
+  renderAll();
+  toast('✓ Added '+val,'success');
+}
+
+// ── Delete entry ──────────────────────────────────────────────────
+function delEntry(cat, uid){
+  const d = getTodayData();
+  d[cat] = (d[cat]||[]).filter(e=>e.uid!==uid);
+  save();
+  renderAll();
+}
+
+// ── Key handler ───────────────────────────────────────────────────
+function handleKey(e, cat){
+  if(e.key==='Enter'){ e.preventDefault(); addEntry(cat); }
+}
+
+// ── Focus category ────────────────────────────────────────────────
+let focusedCat = 'FDD';
+function focusCat(cat){
+  focusedCat = cat;
+  CATS.forEach(c=>{
+    const cid = CAT_ID[c];
+    document.getElementById('card-'+cid).classList.toggle('focused', c===cat);
+    document.getElementById('sum-'+cid).classList.toggle('focused', c===cat);
+  });
+  const id = CAT_ID[cat];
+  const inp = document.getElementById('in-'+id);
+  if(inp) inp.focus();
+}
+// Set initial focus
+document.getElementById('card-FDD').classList.add('focused');
+document.getElementById('sum-FDD').classList.add('focused');
+
+// ── Render list for one category ─────────────────────────────────
+function renderCat(cat){
+  const cid  = CAT_ID[cat];
+  const entries = getCat(cat);
+  const listEl  = document.getElementById('list-'+cid);
+  const badge   = document.getElementById('badge-'+cid);
+  const cnt     = document.getElementById('cnt-'+cid);
+
+  badge.textContent = entries.length;
+  cnt.textContent   = entries.length;
+
+  if(entries.length===0){
+    listEl.innerHTML='<div class="cat-empty">No entries yet — scan or type a tracking ID above</div>';
+    return;
+  }
+
+  // Count duplicates
+  const dupMap={};
+  entries.forEach(e=>{ dupMap[e.id]=(dupMap[e.id]||0)+1; });
+
+  listEl.innerHTML = entries.map((e,i)=>`
+    <div class="entry-row" id="row-${e.uid}">
+      <div class="entry-left">
+        <span class="entry-num">${i+1}</span>
+        <span class="entry-id${dupMap[e.id]>1?' dup':''}">${e.id}${dupMap[e.id]>1?'<span class="dup-badge">DUP</span>':''}</span>
+      </div>
+      <div class="entry-right">
+        <span class="entry-time">${fmtTime(e.ts)}</span>
+        <button class="btn-del" onclick="delEntry('${cat}','${e.uid}')" title="Remove">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Render everything ─────────────────────────────────────────────
+function renderAll(){
+  CATS.forEach(renderCat);
+  const total = CATS.reduce((a,c)=>a+getCat(c).length,0);
+  document.getElementById('total-badge').textContent = total+' PKG TODAY';
+}
+
+// ── Analytics render ──────────────────────────────────────────────
+function renderAnalytics(){
+  // 14-day history
+  const days=14;
+  const dates=[];
+  for(let i=0;i<days;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    dates.push(d.toISOString().slice(0,10));
+  }
+
+  const rows = dates.map(d=>({
+    date:d,
+    FDD:   (history[d]?.['FDD']||[]).length,
+    DOUBLE:(history[d]?.['DOUBLE']||[]).length,
+    DAMAGE:(history[d]?.['DAMAGE']||[]).length,
+    DS:    (history[d]?.['DS STOW FAILURES']||[]).length,
+    get total(){ return this.FDD+this.DOUBLE+this.DAMAGE+this.DS; }
+  }));
+
+  const grand = rows.reduce((a,r)=>a+r.total,0);
+  const totFDD=rows.reduce((a,r)=>a+r.FDD,0);
+  const totDOUBLE=rows.reduce((a,r)=>a+r.DOUBLE,0);
+  const totDAMAGE=rows.reduce((a,r)=>a+r.DAMAGE,0);
+  const totDS=rows.reduce((a,r)=>a+r.DS,0);
+
+  document.getElementById('analytics-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total (14d)</div><div class="stat-val" style="color:var(--orange)">${grand}</div></div>
+    <div class="stat-card"><div class="stat-label">FDD</div><div class="stat-val" style="color:#ff9900">${totFDD}</div></div>
+    <div class="stat-card"><div class="stat-label">DOUBLE</div><div class="stat-val" style="color:#3b82f6">${totDOUBLE}</div></div>
+    <div class="stat-card"><div class="stat-label">DAMAGE</div><div class="stat-val" style="color:#ef4444">${totDAMAGE}</div></div>
+    <div class="stat-card"><div class="stat-label">DS STOW</div><div class="stat-val" style="color:#a855f7">${totDS}</div></div>
+  `;
+
+  const tbody = document.getElementById('analytics-tbody');
+  if(rows.every(r=>r.total===0)){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">No data yet — start logging entries!</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.filter(r=>r.total>0||r.date===today()).map(r=>`
+    <tr>
+      <td>${fmtDate(r.date)}${r.date===today()?' <span style="font-size:9px;background:var(--orange-dim);color:var(--orange);border:1px solid var(--orange);border-radius:4px;padding:1px 4px">TODAY</span>':''}</td>
+      <td style="color:${r.FDD?'#ff9900':'var(--text3)'}">${r.FDD||'–'}</td>
+      <td style="color:${r.DOUBLE?'#3b82f6':'var(--text3)'}">${r.DOUBLE||'–'}</td>
+      <td style="color:${r.DAMAGE?'#ef4444':'var(--text3)'}">${r.DAMAGE||'–'}</td>
+      <td style="color:${r.DS?'#a855f7':'var(--text3)'}">${r.DS||'–'}</td>
+      <td class="td-total">${r.total||'–'}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Page navigation ───────────────────────────────────────────────
+function showPage(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='analytics') renderAnalytics();
+}
+
+// ── Slack send ────────────────────────────────────────────────────
+async function sendToSlack(){
+  const wh = settings.webhookUrl;
+  if(!wh){ toast('No webhook URL set — go to ⚙️ Settings','error'); return; }
+
+  const btn = document.getElementById('btn-send');
+  btn.disabled=true; btn.textContent='Sending…';
+
+  const d = getTodayData();
+  const lines=[
+    `📦 *Problem Solve Daily Report*`,
+    `📅 Date: \`${today()}\`   🕐 Shift: *${shift}*`,
+    `👤 Associate: *${user||'Not set'}*   📍 Station: *${station}*`,
+    ``,
+    CATS.map(c=>`${CAT_ICON[c]} *${c}:* ${(d[c]||[]).length}`).join('   '),
+    ``,
+    `*Detailed Tracking IDs*`,
+    ...CATS.filter(c=>(d[c]||[]).length>0).map(c=>[
+      `*${CAT_ICON[c]} ${c}* (${d[c].length})`,
+      ...d[c].map(e=>`• \`${e.id}\``)
+    ].join('\n')),
+    ``,
+    `_Sent from PS Dashboard · ${new Date().toLocaleTimeString()}_`
+  ];
+
+  const payload = { text: lines.join('\n') };
+  if(settings.channel) payload.channel = settings.channel;
+
+  try{
+    // no-cors mode: the request is sent, response is opaque (Slack still receives it)
+    await fetch(wh,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    toast('📨 Report sent to Slack!','success');
+  }catch(err){
+    toast('Failed to reach Slack. Check webhook URL.','error');
+  }
+
+  btn.disabled=false;
+  btn.innerHTML='📨 Send Report <span class="btn-shortcut">Ctrl+↵</span>';
+}
+
+// ── Test webhook ──────────────────────────────────────────────────
+async function testWebhook(){
+  const wh = document.getElementById('inp-webhook').value.trim();
+  if(!wh){ toast('Paste your webhook URL first','warn'); return; }
+  try{
+    await fetch(wh,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:'🔧 *PS Dashboard* — Test connection successful! ✅'})});
+    toast('Test sent! Check your Slack channel','success');
+  }catch(e){
+    toast('Could not reach Slack. Check the URL.','error');
+  }
+}
+
+// ── Save settings ─────────────────────────────────────────────────
+function saveSettings(){
+  settings.webhookUrl = document.getElementById('inp-webhook').value.trim();
+  settings.channel    = document.getElementById('inp-channel').value.trim();
+  lsSet('ps_settings', settings);
+  const ok = document.getElementById('settings-ok');
+  ok.style.display='block';
+  setTimeout(()=>ok.style.display='none',3000);
+  toast('Settings saved!','success');
+}
+
+// ── Export CSV ────────────────────────────────────────────────────
+function exportCSV(){
+  const d = getTodayData();
+  const rows=[['Date','Shift','Associate','Station','Category','Tracking ID','Time']];
+  CATS.forEach(cat=>(d[cat]||[]).forEach(e=>{
+    rows.push([today(),shift,user,station,cat,e.id,new Date(e.ts).toLocaleString()]);
+  }));
+  const csv=rows.map(r=>r.map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`PS_Report_${today()}_${shift}.csv`;
+  a.click();
+  toast('CSV downloaded!','success');
+}
+
+// ── Clear data ────────────────────────────────────────────────────
+function clearToday(){
+  if(!confirm('Clear all entries for today ('+today()+')? This cannot be undone.')) return;
+  history[today()] = {};
+  save(); renderAll();
+  toast('Today cleared','warn');
+}
+function clearAll(){
+  if(!confirm('Delete ALL historical data? This cannot be undone.')) return;
+  history={};
+  save(); renderAll();
+  toast('All data cleared','warn');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────
+function toast(msg, type='success'){
+  const el=document.createElement('div');
+  el.className='toast '+type;
+  el.textContent=msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>el.remove(), 3500);
+}
+
+// ── Global keyboard shortcut ──────────────────────────────────────
+document.addEventListener('keydown', e=>{
+  if(e.ctrlKey && e.key==='Enter'){ e.preventDefault(); sendToSlack(); }
+});
+
+// ── Auto-reset check (new day) ────────────────────────────────────
+// Just makes sure today's key exists; history for previous days is kept.
+getTodayData();
+
+// ── Initial render ────────────────────────────────────────────────
+renderAll();
+focusCat('FDD');
+</script>
+
+
+</body></html>
